@@ -14,7 +14,7 @@ from pyshark.packet.packet import Packet
 from pyshark.tshark.output_parser import tshark_ek
 from pyshark.tshark.output_parser import tshark_json
 from pyshark.tshark.output_parser import tshark_xml
-from pyshark.tshark.tshark import get_process_path, get_tshark_display_filter_flag, \
+from pyshark.tshark.tshark import get_tshark_interfaces, get_process_path, get_tshark_display_filter_flag, \
     tshark_supports_json, TSharkVersionException, get_tshark_version, tshark_supports_duplicate_keys
 
 
@@ -47,7 +47,7 @@ class Capture:
     DEFAULT_LOG_LEVEL = logging.CRITICAL
     SUPPORTED_ENCRYPTION_STANDARDS = ["wep", "wpa-pwk", "wpa-pwd", "wpa-psk"]
 
-    def __init__(self, display_filter=None, only_summaries=False, eventloop=None,
+    def __init__(self, interface=None, display_filter=None, only_summaries=False, eventloop=None,
                  decryption_key=None, encryption_type="wpa-pwd", output_file=None,
                  decode_as=None,  disable_protocol=None, tshark_path=None,
                  override_prefs=None, capture_filter=None, use_json=False, include_raw=False,
@@ -77,6 +77,14 @@ class Capture:
         self._last_error_line = None
         self._stderr_handling_tasks = []
         self.__tshark_version = None
+
+        all_interfaces = get_tshark_interfaces(tshark_path)
+        if interface is None:
+            self.interfaces = all_interfaces
+        elif isinstance(interface, str):
+            self.interfaces = [interface]
+        else:
+            self.interfaces = interface
 
         if include_raw and not (use_json or use_ek):
             raise RawMustUseJsonException(
@@ -422,6 +430,8 @@ class Capture:
     def get_parameters(self, packet_count=None):
         """Returns the special tshark parameters to be used according to the configuration of this class."""
         params = []
+        for interface in self.interfaces:
+            params += ["-i", interface]
         if self._capture_filter:
             params += ["-f", self._capture_filter]
         if self._display_filter:
