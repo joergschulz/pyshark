@@ -2,6 +2,7 @@ import asyncio
 import contextlib
 import inspect
 import os
+import signal
 import threading
 import subprocess
 import concurrent.futures
@@ -377,7 +378,7 @@ class Capture:
         self._log.debug(f"Cleanup Subprocess (pid {process.pid})")
         if process.returncode is None:
             try:
-                process.kill()
+                process.send_signal( signal.SIGINT )
                 return await asyncio.wait_for(process.wait(), 1)
             except asyncTimeoutError:
                 self._log.debug(
